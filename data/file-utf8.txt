@@ -1,0 +1,1 @@
+I am UTF-8 encoded Euro \xE2\x82\xAC: €

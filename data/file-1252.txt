@@ -1,0 +1,1 @@
+I am Windows-1252 encoded Euro \x80: €
