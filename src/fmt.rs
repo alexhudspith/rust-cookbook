@@ -1,8 +1,20 @@
 
 #[cfg(test)]
 mod tests {
-    use std::assert_matches::assert_matches;
     use std::num::{ParseFloatError, ParseIntError};
+    use std::num::IntErrorKind::*;
+
+    macro_rules! assert_err {
+        ($actual:expr $(,)?) => {
+            ::std::assert!($actual.is_err())
+        };
+        ($actual:expr, $err:ident $(,)?) => {
+            ::std::assert!(::std::matches!($actual, Err($err {..})))
+        };
+        ($actual:expr, $err:ident($kind:expr) $(,)?) => {
+            ::std::assert!(::std::matches!($actual, Err(e @ $err {..}) if *e.kind() == $kind))
+        };
+    }
 
     #[test]
     fn parse_decimal_int() -> Result<(), ParseIntError> {
@@ -17,39 +29,39 @@ mod tests {
         assert_eq!(s, 10);
 
         // ...or Rust octal...
-        assert!(matches!("0o10".parse::<i32>(), Err(ParseIntError {..})));
+        assert_err!("0o10".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // ...or hex
-        assert!("0x10".parse::<i32>().is_err());
+        assert_err!("0x10".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // + is ok
         let s: i32 = "+123".parse()?;
         assert_eq!(s, 123);
 
         // No trailing garbage
-        assert!("123a".parse::<i32>().is_err());
+        assert_err!("123a".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // No double neg
-        assert!("--123".parse::<i32>().is_err());
+        assert_err!("--123".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // No leading space
-        assert!(" 123".parse::<i32>().is_err());
+        assert_err!(" 123".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // No trailing space
-        assert!("123 ".parse::<i32>().is_err());
+        assert_err!("123 ".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // ASCII-only
-        assert!("１２３".parse::<i32>().is_err());
+        assert_err!("１２３".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // Too big
-        assert!("2147483648".parse::<i32>().is_err());
-        assert!("-2147483649".parse::<i32>().is_err());
+        assert_err!("2147483648".parse::<i32>(), ParseIntError(PosOverflow));
+        assert_err!("-2147483649".parse::<i32>(), ParseIntError(NegOverflow));
 
         // No underscore
-        assert!("123_000".parse::<i32>().is_err());
+        assert_err!("123_000".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // No comma
-        assert!("123,000".parse::<i32>().is_err());
+        assert_err!("123,000".parse::<i32>(), ParseIntError(InvalidDigit));
 
         // Not try_into
         // let s: i32 = "-123".try_into()?;
@@ -68,8 +80,8 @@ mod tests {
         assert_eq!(format!("{}", pos), "123");
         assert_eq!(format!("{}", neg), "-123");
         // Debug
-        assert_eq!(format!("{pos}"), "123");
-        assert_eq!(format!("{neg}"), "-123");
+        assert_eq!(format!("{pos:?}"), "123");
+        assert_eq!(format!("{neg:?}"), "-123");
         // Sign
         assert_eq!(format!("{pos:+}"), "+123");
         assert_eq!(format!("{neg:+}"), "-123");
@@ -130,11 +142,11 @@ mod tests {
         assert_eq!(i32::from_str_radix("7f", 16), Ok(0x7f));
         assert_eq!(i32::from_str_radix("7F", 16), Ok(0x7f));
         // No 0x prefix
-        assert_matches!(i32::from_str_radix("0x7F", 16), Err(ParseIntError {..}));
+        assert_err!(i32::from_str_radix("0x7F", 16), ParseIntError(InvalidDigit));
 
         assert_eq!(i32::from_str_radix("-1", 16), Ok(-1));
         // It's not -1_i32. Asymmetric with format {:x}
-        assert_matches!(i32::from_str_radix("ffffffff", 16), Err(ParseIntError {..}));
+        assert_err!(i32::from_str_radix("ffffffff", 16), ParseIntError(PosOverflow));
         Ok(())
     }
 
@@ -176,7 +188,7 @@ mod tests {
         assert_eq!(s, -0.25);
 
         // Not dot
-        assert!(".".parse::<f32>().is_err());
+        assert_err!(".".parse::<f32>(), ParseFloatError);
 
         let s: f32 = "123.25".parse()?;
         assert_eq!(s, 123.25);
@@ -199,17 +211,17 @@ mod tests {
         assert_eq!(s, 123.25);
 
         // No e dot
-        assert_matches!("12.325e+1.0".parse::<f32>(), Err(ParseFloatError {..}));
+        assert_err!("12.325e+1.0".parse::<f32>(), ParseFloatError);
 
         // Big E
         let s: f32 = "12.325E1".parse()?;
         assert_eq!(s, 123.25);
 
         // No trailing e
-        assert!("123.25e".parse::<f32>().is_err());
+        assert_err!("123.25e".parse::<f32>());
 
         // No leading e
-        assert!("e1".parse::<f32>().is_err());
+        assert_err!("e1".parse::<f32>());
         Ok(())
     }
 
@@ -237,7 +249,7 @@ mod tests {
 
         // Not infin
         let s = "infin".parse::<f32>();
-        assert!(s.is_err());
+        assert_err!(s, ParseFloatError);
 
         // inf case-insensitive
         let s = "iNf".parse::<f32>()?;
@@ -248,7 +260,7 @@ mod tests {
         assert!(s.is_infinite() && s.is_sign_negative());
 
         // Not Excel
-        assert!("#N/A".parse::<f32>().is_err());
+        assert_err!("#N/A".parse::<f32>(), ParseFloatError);
         Ok(())
     }
 
@@ -270,7 +282,7 @@ mod tests {
     fn parse_float_limits() -> Result<(), ParseFloatError> {
         // Slightly under denormal min, rounds up
         assert_eq!("0.8e-45".parse::<f32>(), Ok(1e-45));
-        // Normal min
+        // Normal min +ve
         assert_eq!("1.17549435e-38".parse::<f32>(), Ok(f32::MIN_POSITIVE));
         // Too small, underflow to zero
         assert_eq!("1.40129846432e-46".parse::<f32>(), Ok(0.0));
@@ -279,7 +291,6 @@ mod tests {
         assert_eq!("340282346638528859811704183484516925441".parse::<f32>(), Ok(f32::MAX));
         // Too big
         assert_eq!("340282356800000000000000000000000000000".parse::<f32>(), Ok(f32::INFINITY));
-        // assert!("-2147483649".parse::<f32>().is_err());
 
         // Not try_into
         // let s: f32 = "-123.25".try_into()?;
