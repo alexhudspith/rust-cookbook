@@ -289,37 +289,36 @@ mod tests {
 
     #[test]
     fn format_float() {
-        let pos: f32 = 128.25;
-        let neg: f32 = -128.25;
-        
-        assert_eq!(pos.to_string(), "128.25");
-        assert_eq!(neg.to_string(), "-128.25");
+        // Numbers below are exactly representable
 
-        assert_eq!(format!("{}",    pos), "128.25");
-        assert_eq!(format!("{}",    neg), "-128.25");
-        assert_eq!(format!("{:?}",  pos), "128.25");
-        assert_eq!(format!("{:?}",  neg), "-128.25");
-        assert_eq!(format!("{:+}",  pos), "+128.25");
-        assert_eq!(format!("{:+}",  neg), "-128.25");
-        assert_eq!(format!("{:+?}", pos), "+128.25");
-        assert_eq!(format!("{:+?}", neg), "-128.25");
+        assert_eq!(128.25.to_string(), "128.25");
+        assert_eq!((-128.25).to_string(), "-128.25");
 
-        assert_eq!(format!("{:10.3}",  pos), "   128.250");
-        assert_eq!(format!("{:10.3}",  neg), "  -128.250");
-        assert_eq!(format!("{:+10.3}", pos), "  +128.250");
-        assert_eq!(format!("{:+10.3}", neg), "  -128.250");
+        assert_eq!(format!("{}",     128.25), "128.25");
+        assert_eq!(format!("{}",    -128.25), "-128.25");
+        assert_eq!(format!("{:?}",   128.25), "128.25");
+        assert_eq!(format!("{:?}",  -128.25), "-128.25");
+        assert_eq!(format!("{:+}",   128.25), "+128.25");
+        assert_eq!(format!("{:+}",  -128.25), "-128.25");
+        assert_eq!(format!("{:+?}",  128.25), "+128.25");
+        assert_eq!(format!("{:+?}", -128.25), "-128.25");
+
+        assert_eq!(format!("{:10.3}",   128.25), "   128.250");
+        assert_eq!(format!("{:10.3}",  -128.25), "  -128.250");
+        assert_eq!(format!("{:+10.3}",  128.25), "  +128.250");
+        assert_eq!(format!("{:+10.3}", -128.25), "  -128.250");
 
         // Round to nearest, ties to even
-        // (128.25 and 128.75 are exactly representable)
         assert_eq!(format!("{:.1}",  128.25), "128.2");
         assert_eq!(format!("{:.1}", -128.25), "-128.2");
+        // Note different number: 128 point *seven* five
         assert_eq!(format!("{:.1}",  128.75), "128.8");
         assert_eq!(format!("{:.1}", -128.75), "-128.8");
 
-        assert_eq!(format!("{:010.3e}",  pos), "0001.282e2");
-        assert_eq!(format!("{:010.3e}",  neg), "-001.282e2");
-        assert_eq!(format!("{:+010.3E}", pos), "+001.282E2");
-        assert_eq!(format!("{:+010.3E}", neg), "-001.282E2");
+        assert_eq!(format!("{:010.3e}",   128.25), "0001.282e2");
+        assert_eq!(format!("{:010.3e}",  -128.25), "-001.282e2");
+        assert_eq!(format!("{:+010.3E}",  128.25), "+001.282E2");
+        assert_eq!(format!("{:+010.3E}", -128.25), "-001.282E2");
     }
 
     #[test]
@@ -327,22 +326,77 @@ mod tests {
         assert_eq!((0.0).to_string(), "0");
         assert_eq!((-0.0).to_string(), "-0");
 
-        assert_eq!(format!("{}", 0.0), "0");
-        assert_eq!(format!("{}", -0.0), "-0");
-        assert_eq!(format!("{:?}", 0.0), "0.0");
-        assert_eq!(format!("{:?}", -0.0), "-0.0");
-        assert_eq!(format!("{:+}", 0.0), "+0");
-        assert_eq!(format!("{:+}", -0.0), "-0");
-        assert_eq!(format!("{:+?}", 0.0), "+0.0");
+        assert_eq!(format!("{}",     0.0), "0");
+        assert_eq!(format!("{}",    -0.0), "-0");
+        assert_eq!(format!("{:?}",   0.0), "0.0");
+        assert_eq!(format!("{:?}",  -0.0), "-0.0");
+        assert_eq!(format!("{:+}",   0.0), "+0");
+        assert_eq!(format!("{:+}",  -0.0), "-0");
+        assert_eq!(format!("{:+?}",  0.0), "+0.0");
         assert_eq!(format!("{:+?}", -0.0), "-0.0");
 
-        assert_eq!(format!("{:e}", 0.0), "0e0");
-        assert_eq!(format!("{:e}", -0.0), "-0e0");
-        assert_eq!(format!("{:+e}", 0.0), "+0e0");
+        assert_eq!(format!("{:e}",   0.0), "0e0");
+        assert_eq!(format!("{:e}",  -0.0), "-0e0");
+        assert_eq!(format!("{:+e}",  0.0), "+0e0");
         assert_eq!(format!("{:+e}", -0.0), "-0e0");
-        assert_eq!(format!("{:E}", 0.0), "0E0");
-        assert_eq!(format!("{:E}", -0.0), "-0E0");
-        assert_eq!(format!("{:+E}", 0.0), "+0E0");
+        assert_eq!(format!("{:E}",   0.0), "0E0");
+        assert_eq!(format!("{:E}",  -0.0), "-0E0");
+        assert_eq!(format!("{:+E}",  0.0), "+0E0");
         assert_eq!(format!("{:+E}", -0.0), "-0E0");
+    }
+
+    #[test]
+    fn format_float_nonfinite() {
+        let nan = f32::NAN;
+        assert!((-nan).is_sign_negative(), "Test setup failure: no negative NaN");
+
+        assert_eq!(nan.to_string(), "NaN");
+        // Sign of NaN is lost
+        assert_eq!((-nan).to_string(), "NaN");
+
+        assert_eq!(format!("{}",     nan), "NaN");
+        assert_eq!(format!("{}",    -nan), "NaN");
+        assert_eq!(format!("{:?}",   nan), "NaN");
+        assert_eq!(format!("{:?}",  -nan), "NaN");
+        assert_eq!(format!("{:+}",   nan), "NaN");
+        assert_eq!(format!("{:+}",  -nan), "NaN");
+        assert_eq!(format!("{:+?}",  nan), "NaN");
+        assert_eq!(format!("{:+?}", -nan), "NaN");
+
+        assert_eq!(format!("{:e}",   nan), "NaN");
+        assert_eq!(format!("{:e}",  -nan), "NaN");
+        assert_eq!(format!("{:+e}",  nan), "NaN");
+        assert_eq!(format!("{:+e}", -nan), "NaN");
+        assert_eq!(format!("{:E}",   nan), "NaN");
+        assert_eq!(format!("{:E}",  -nan), "NaN");
+        assert_eq!(format!("{:+E}",  nan), "NaN");
+        assert_eq!(format!("{:+E}", -nan), "NaN");
+    }
+
+    #[test]
+    fn format_float_limits() {
+        // Denormal min +ve & -ve
+        assert_eq!(format!("{}",    1e-45), "0.000000000000000000000000000000000000000000001");
+        assert_eq!(format!("{}",   -1e-45), "-0.000000000000000000000000000000000000000000001");
+        assert_eq!(format!("{:?}",  1e-45), "1e-45");
+        assert_eq!(format!("{:?}", -1e-45), "-1e-45");
+        assert_eq!(format!("{:e}",  1e-45), "1e-45");
+        assert_eq!(format!("{:e}", -1e-45), "-1e-45");
+
+        // Normal min +ve & -ve
+        assert_eq!(format!("{}",    f32::MIN_POSITIVE), "0.000000000000000000000000000000000000011754944");
+        assert_eq!(format!("{}",   -f32::MIN_POSITIVE), "-0.000000000000000000000000000000000000011754944");
+        assert_eq!(format!("{:?}",  f32::MIN_POSITIVE), "1.1754944e-38");
+        assert_eq!(format!("{:?}", -f32::MIN_POSITIVE), "-1.1754944e-38");
+        assert_eq!(format!("{:e}",  f32::MIN_POSITIVE), "1.1754944e-38");
+        assert_eq!(format!("{:e}", -f32::MIN_POSITIVE), "-1.1754944e-38");
+
+        // Max +ve & -ve
+        assert_eq!(format!("{}",   f32::MAX), "340282350000000000000000000000000000000");
+        assert_eq!(format!("{}",   f32::MIN), "-340282350000000000000000000000000000000");
+        assert_eq!(format!("{:?}", f32::MAX), "3.4028235e38");
+        assert_eq!(format!("{:?}", f32::MIN), "-3.4028235e38");
+        assert_eq!(format!("{:e}", f32::MAX), "3.4028235e38");
+        assert_eq!(format!("{:e}", f32::MIN), "-3.4028235e38");
     }
 }
