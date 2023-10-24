@@ -4,6 +4,7 @@
 #![feature(ptr_addr_eq)]
 #![feature(slice_as_chunks)]
 
+mod callbacks;
 mod fmt;
 mod io;
 mod lang;
