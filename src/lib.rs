@@ -6,6 +6,7 @@
 
 mod fmt;
 mod io;
+mod lang;
 mod macros;
 mod serde;
 mod sort;

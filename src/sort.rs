@@ -1,11 +1,16 @@
+#![allow(unused)]
+
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+
+#[derive(Debug, Copy, Clone)]
+struct NotEq(f64);
 
 #[derive(Debug, Clone)]
 struct KeyValue {
     key: &'static str,
     #[allow(dead_code)]
-    value: f64,
+    value: NotEq,
 }
 
 impl PartialEq for KeyValue {
@@ -40,43 +45,17 @@ impl Ord for KeyValue {
     }
 }
 
-const A1: KeyValue = KeyValue { key: "A", value: 1.0 };
-const A2: KeyValue = KeyValue { key: "A", value: 2.0 };
-const B2: KeyValue = KeyValue { key: "B", value: 2.0 };
-const B0: KeyValue = KeyValue { key: "B", value: 0.0 };
+const A1: KeyValue = KeyValue { key: "A", value: NotEq(1.0) };
+const A2: KeyValue = KeyValue { key: "A", value: NotEq(2.0) };
+const B2: KeyValue = KeyValue { key: "B", value: NotEq(2.0) };
+const B0: KeyValue = KeyValue { key: "B", value: NotEq(0.0) };
 
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cmp::Ordering;
     use std::collections::hash_map::DefaultHasher;
     use std::error::Error;
-    use std::hash::{Hash, Hasher};
-
-    #[test]
-    fn eq_deref() {
-        assert_eq!(&A1, &A2);
-    }
-
-    #[test]
-    fn eq_deref_mut() {
-        let mut a1 = A1.clone();
-        let mut a2 = A2.clone();
-        assert_eq!(&mut a1, &mut a2);
-    }
-
-    #[test]
-    fn eq_no_deref_ptr() {
-        assert_ne!(&A1 as *const _, &A2 as *const _);
-    }
-
-    #[test]
-    fn eq_no_deref_ptr_mut() {
-        let mut a1 = A1.clone();
-        let mut a2 = A2.clone();
-        assert_ne!(&mut a1 as *mut _, &mut a2 as *mut _);
-    }
 
     #[test]
     fn partial_cmp() {
