@@ -5,6 +5,7 @@
 #![feature(slice_as_chunks)]
 
 mod callbacks;
+mod datetime;
 mod fmt;
 mod io;
 mod lang;
