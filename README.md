@@ -3,7 +3,7 @@ structured as tests.
 
 ### Running the Tests
 
-This crate uses the unstable feature `lazy_cell` and so needs a nightly build
+This crate uses a few unstable features and so needs a nightly build
 of Rust.
 
 To run, use `cargo +nightly test` in the project directory.
